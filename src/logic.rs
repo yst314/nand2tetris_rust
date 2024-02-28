@@ -1,30 +1,22 @@
 use std::ops::{Index, IndexMut};
 
-#[derive(Debug,Clone, Copy, PartialEq, Eq)]
-pub struct Word ([bool; 16]);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Word([bool; 16]);
 impl Word {
     pub fn new(a: [bool; 16]) -> Self {
         Word(a)
     }
     pub fn to_slice(&self) -> [bool; 16] {
         [
-            self[0],
-            self[1],
-            self[2],
-            self[3],
-            self[4],
-            self[5],
-            self[6],
-            self[7],
-            self[8],
-            self[9],
-            self[10],
-            self[11],
-            self[12],
-            self[13],
-            self[14],
-            self[15],
+            self[0], self[1], self[2], self[3], self[4], self[5], self[6], self[7], self[8],
+            self[9], self[10], self[11], self[12], self[13], self[14], self[15],
         ]
+    }
+    pub fn iter(&self) -> WordIterator {
+        WordIterator {
+            word: self,
+            index: 0,
+        }
     }
 }
 
@@ -33,7 +25,7 @@ impl Index<usize> for Word {
 
     fn index(&self, index: usize) -> &Self::Output {
         if 15 < index {
-            panic!(format!("index fail: {} is out of range", index))
+            panic!("index fail: {index} is out of range")
         }
         &self.0[index]
     }
@@ -42,12 +34,43 @@ impl Index<usize> for Word {
 impl IndexMut<usize> for Word {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         if 15 < index {
-            panic!(format!("index_mut fail: {} is out of range", index))
+            panic!("index_mut fail: {index} is out of range")
         }
         self.0.index_mut(index)
     }
 }
 
+// `WordIterator`を定義します。これは`Word`のイテレーションに必要な状態を保持します。
+pub struct WordIterator<'a> {
+    word: &'a Word,
+    index: usize,
+}
+
+impl<'a> IntoIterator for &'a Word {
+    type Item = bool;
+    type IntoIter = WordIterator<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        WordIterator {
+            word: self,
+            index: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for WordIterator<'a> {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < 16 {
+            let result = self.word.0[self.index];
+            self.index += 1;
+            Some(result)
+        } else {
+            None // イテレーションの終わり
+        }
+    }
+}
 pub fn nand(a: bool, b: bool) -> bool {
     !(a && b)
 }
@@ -83,47 +106,47 @@ pub fn dmux(input: bool, sel: bool) -> [bool; 2] {
 
 pub fn not16(a: Word) -> Word {
     Word::new([
-            not(a[0]),
-            not(a[1]),
-            not(a[2]),
-            not(a[3]),
-            not(a[4]),
-            not(a[5]),
-            not(a[6]),
-            not(a[7]),
-            not(a[8]),
-            not(a[9]),
-            not(a[10]),
-            not(a[11]),
-            not(a[12]),
-            not(a[13]),
-            not(a[14]),
-            not(a[15]),
+        not(a[0]),
+        not(a[1]),
+        not(a[2]),
+        not(a[3]),
+        not(a[4]),
+        not(a[5]),
+        not(a[6]),
+        not(a[7]),
+        not(a[8]),
+        not(a[9]),
+        not(a[10]),
+        not(a[11]),
+        not(a[12]),
+        not(a[13]),
+        not(a[14]),
+        not(a[15]),
     ])
 }
 
-pub fn and16(a: [bool; 16], b: [bool; 16]) -> [bool; 16] {
+pub fn and16(a: Word, b: Word) -> Word {
     let mut output = [false; 16];
     for i in 0..16 {
         output[i] = and(a[i], b[i]);
     }
-    output
+    Word::new(output)
 }
 
-pub fn or16(a: [bool; 16], b: [bool; 16]) -> [bool; 16] {
+pub fn or16(a: Word, b: Word) -> Word {
     let mut output = [false; 16];
     for i in 0..16 {
         output[i] = or(a[i], b[i]);
     }
-    output
+    Word::new(output)
 }
 
-pub fn mux16(a: [bool; 16], b: [bool; 16], sel: bool) -> [bool; 16] {
+pub fn mux16(a: Word, b: Word, sel: bool) -> Word {
     let mut output = [false; 16];
     for i in 0..16 {
         output[i] = mux(a[i], b[i], sel);
     }
-    output
+    Word::new(output)
 }
 
 pub fn or_8_way(input: [bool; 8]) -> bool {
@@ -149,7 +172,7 @@ pub fn bool_2_uint(a: bool) -> u32 {
     output
 }
 
-pub fn mux_4_way_16(input: [[bool; 16]; 4], sel: [bool; 2]) -> [bool; 16] {
+pub fn mux_4_way_16(input: [Word; 4], sel: [bool; 2]) -> Word {
     let i = 1 * bool_2_uint(sel[0]) + 2 * bool_2_uint(sel[1]);
 
     input[i as usize]
@@ -170,7 +193,7 @@ pub fn mux_4_way_16(input: [[bool; 16]; 4], sel: [bool; 2]) -> [bool; 16] {
 //     }
 // }
 
-pub fn mux_8_way_16(input: [[bool; 16]; 8], sel: [bool; 3]) -> [bool; 16] {
+pub fn mux_8_way_16(input: [Word; 8], sel: [bool; 3]) -> Word {
     let mut ind: i32 = 0;
     for i in 0..3 {
         ind += 2_i32.pow(i) * bool_2_uint(sel[i as usize]) as i32;
@@ -184,15 +207,15 @@ pub fn mux_8_way_16(input: [[bool; 16]; 8], sel: [bool; 3]) -> [bool; 16] {
 // }
 
 #[cfg(test)]
-mod test_logic{
+mod test_logic {
     use crate::logic::*;
 
     #[test]
     fn test_mux_8_way_16() {
-        let mut input = [[false; 16]; 8];
+        let mut input = [Word::new([false; 16]); 8];
         let sel = [false, false, true];
         input[4][7] = true;
-        let mut output = [false; 16];
+        let mut output = Word::new([false; 16]);
         output[7] = true;
         assert_eq!(mux_8_way_16(input, sel), output);
     }
@@ -208,15 +231,15 @@ mod test_logic{
 
     #[test]
     fn test_not16() {
-        let input = [
-            false, false, false, false, false, false, false, false, false, false, false, false, false,
-            false, false, false,
-        ];
+        let input = Word::new([
+            false, false, false, false, false, false, false, false, false, false, false, false,
+            false, false, false, false,
+        ]);
 
-        let output = [
-            true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
-            true,
-        ];
+        let output = Word::new([
+            true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+            true, true,
+        ]);
         assert_eq!(not16(input), output);
     }
 
