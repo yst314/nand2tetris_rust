@@ -1,3 +1,53 @@
+use std::ops::{Index, IndexMut};
+
+#[derive(Debug,Clone, Copy, PartialEq, Eq)]
+pub struct Word ([bool; 16]);
+impl Word {
+    pub fn new(a: [bool; 16]) -> Self {
+        Word(a)
+    }
+    pub fn to_slice(&self) -> [bool; 16] {
+        [
+            self[0],
+            self[1],
+            self[2],
+            self[3],
+            self[4],
+            self[5],
+            self[6],
+            self[7],
+            self[8],
+            self[9],
+            self[10],
+            self[11],
+            self[12],
+            self[13],
+            self[14],
+            self[15],
+        ]
+    }
+}
+
+impl Index<usize> for Word {
+    type Output = bool;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        if 15 < index {
+            panic!(format!("index fail: {} is out of range", index))
+        }
+        &self.0[index]
+    }
+}
+
+impl IndexMut<usize> for Word {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if 15 < index {
+            panic!(format!("index_mut fail: {} is out of range", index))
+        }
+        self.0.index_mut(index)
+    }
+}
+
 pub fn nand(a: bool, b: bool) -> bool {
     !(a && b)
 }
@@ -31,12 +81,25 @@ pub fn dmux(input: bool, sel: bool) -> [bool; 2] {
     [and(not(sel), input), and(sel, input)]
 }
 
-pub fn not16(a: [bool; 16]) -> [bool; 16] {
-    let mut output = [false; 16];
-    for i in 0..16 {
-        output[i] = not(a[i]);
-    }
-    output
+pub fn not16(a: Word) -> Word {
+    Word::new([
+            not(a[0]),
+            not(a[1]),
+            not(a[2]),
+            not(a[3]),
+            not(a[4]),
+            not(a[5]),
+            not(a[6]),
+            not(a[7]),
+            not(a[8]),
+            not(a[9]),
+            not(a[10]),
+            not(a[11]),
+            not(a[12]),
+            not(a[13]),
+            not(a[14]),
+            not(a[15]),
+    ])
 }
 
 pub fn and16(a: [bool; 16], b: [bool; 16]) -> [bool; 16] {
